@@ -88,3 +88,4 @@ LXN_TMUX_COMMAND='/home/pi/listen_lxn_mqtt/target/release/listen_lxn_mqtt' \
 ssh lxn -t tmux attach -t listen_lxn
 ```
 # pg_lxn_esp
+# pg_lxn_esp
