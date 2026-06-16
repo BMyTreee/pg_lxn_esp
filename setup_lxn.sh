@@ -153,12 +153,18 @@ REMOTE
 
 # ── command: prompt all (ask for PG user/pass) ──────────────────────────────
 cmd_prompt_all() {
+    # skip prompts if env vars already set
+    [[ -n "${LXN_PG_USER:-}" && -n "${LXN_PG_PASSWORD:-}" ]] && {
+        log "PG user=${LXN_PG_USER} password=*** (from env)"
+        return 0
+    }
+
     log "enter PostgreSQL credentials (or leave blank for defaults)"
 
-    read -r -p "PostgreSQL user [lxn]: " pg_user_input
+    read -r -p "PostgreSQL user [${LXN_PG_USER:-lxn}]: " pg_user_input
     export LXN_PG_USER="${pg_user_input:-lxn}"
 
-    read -r -s -p "PostgreSQL password [changeme]: " pg_pass_input
+    read -r -s -p "PostgreSQL password [${LXN_PG_PASSWORD:-changeme}]: " pg_pass_input
     echo
     export LXN_PG_PASSWORD="${pg_pass_input:-changeme}"
 
