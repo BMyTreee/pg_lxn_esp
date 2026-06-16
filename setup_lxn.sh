@@ -150,7 +150,7 @@ ensure_role_db() {
     if ! database_exists; then
         su - postgres -c "createdb -O '${PG_USER}' '${PG_DB}'"
     fi
-    su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE '${PG_DB}' TO '${PG_USER}';\""
+    su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE \\\"${PG_DB}\\\" TO \\\"${PG_USER}\\\";\""
 }
 load_init() {
     [[ -f "${INIT_SQL}" ]] || { log "no init.sql — skipping"; return 0; }
