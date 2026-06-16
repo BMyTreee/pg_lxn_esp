@@ -106,6 +106,7 @@ install_pg() {
     as_root apt-get update -y
     if ! as_root apt-get install -y "postgresql-${PG_VERSION}"; then
         log "package missing — adding PGDG repo"
+        as_root apt-get install -y curl
         as_root install -d /usr/share/postgresql-common/pgdg
         as_root curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
             https://www.postgresql.org/media/keys/ACCC4CF8.asc
