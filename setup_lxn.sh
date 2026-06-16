@@ -314,7 +314,7 @@ cmd_prompt_all() {
     echo
     [[ -n "$pg_pass_input" ]] && export LXN_PG_PASSWORD="$pg_pass_input"
 
-    log "PG user=${LXN_PG_USER} password=***"
+    log "PG user=${LXN_PG_USER:-lxn} password=***"
 }
 
 # ── main / dispatch ─────────────────────────────────────────────────────────
