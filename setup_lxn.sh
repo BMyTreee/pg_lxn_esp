@@ -32,28 +32,32 @@ log_ok() { printf '\033[1;32m[lxn]\033[0m %s\n' "$*"; }
 log_err() { printf '\033[1;31m[lxn:err]\033[0m %s\n' "$*" >&2; }
 die()  { log_err "$*"; exit 1; }
 
+as_root() {
+    if [[ "${EUID}" -eq 0 ]]; then "$@"; else sudo "$@"; fi
+}
+
 # ── command: fix-sshd ───────────────────────────────────────────────────────
 cmd_fix_sshd() {
     log "fixing sshd_config"
 
-    sudo cp -n "${SSHD_CONFIG}" "${SSHD_CONFIG}.bak"
-    sudo sed -i -E 's|^[[:space:]]*#?[[:space:]]*(PasswordAuthentication).*|\1 yes|' "${SSHD_CONFIG}"
-    sudo sed -i -E 's|^[[:space:]]*#?[[:space:]]*(PubkeyAuthentication).*|\1 yes|' "${SSHD_CONFIG}"
+    as_root cp -n "${SSHD_CONFIG}" "${SSHD_CONFIG}.bak"
+    as_root sed -i -E 's|^[[:space:]]*#?[[:space:]]*(PasswordAuthentication).*|\1 yes|' "${SSHD_CONFIG}"
+    as_root sed -i -E 's|^[[:space:]]*#?[[:space:]]*(PubkeyAuthentication).*|\1 yes|' "${SSHD_CONFIG}"
     for f in /etc/ssh/sshd_config.d/*.conf; do
         [[ -f "$f" ]] || continue
-        sudo sed -i -E 's|^[[:space:]]*#?[[:space:]]*(PasswordAuthentication).*|\1 yes|' "$f"
-        sudo sed -i -E 's|^[[:space:]]*#?[[:space:]]*(PubkeyAuthentication).*|\1 yes|' "$f"
+        as_root sed -i -E 's|^[[:space:]]*#?[[:space:]]*(PasswordAuthentication).*|\1 yes|' "$f"
+        as_root sed -i -E 's|^[[:space:]]*#?[[:space:]]*(PubkeyAuthentication).*|\1 yes|' "$f"
     done
     # fallback: append if directive is completely absent
-    grep -qE '^[[:space:]]*PasswordAuthentication' "${SSHD_CONFIG}" || echo 'PasswordAuthentication yes' | sudo tee -a "${SSHD_CONFIG}" >/dev/null
-    grep -qE '^[[:space:]]*PubkeyAuthentication' "${SSHD_CONFIG}" || echo 'PubkeyAuthentication yes' | sudo tee -a "${SSHD_CONFIG}" >/dev/null
+    grep -qE '^[[:space:]]*PasswordAuthentication' "${SSHD_CONFIG}" || echo 'PasswordAuthentication yes' | as_root tee -a "${SSHD_CONFIG}" >/dev/null
+    grep -qE '^[[:space:]]*PubkeyAuthentication' "${SSHD_CONFIG}" || echo 'PubkeyAuthentication yes' | as_root tee -a "${SSHD_CONFIG}" >/dev/null
 
     grep -E '^[[:space:]]*(PasswordAuthentication|PubkeyAuthentication)' "${SSHD_CONFIG}" || true
 
     if command -v systemctl >/dev/null; then
-        sudo systemctl restart sshd || sudo systemctl restart ssh
+        as_root systemctl restart sshd || as_root systemctl restart ssh
     else
-        sudo service sshd restart || sudo service ssh restart
+        as_root service sshd restart || as_root service ssh restart
     fi
 
     log_ok "done. PasswordAuthentication + PubkeyAuthentication enabled"
@@ -68,7 +72,6 @@ cmd_tmux_uninstall() {
         return 0
     fi
 
-    as_root() { if [[ "${EUID}" -ne 0 ]]; then sudo "$@"; else "$@"; fi; }
     as_root apt-get remove -y tmux
     as_root apt-get autoremove -y
 
