@@ -35,6 +35,14 @@ die()  { log_err "$*"; exit 1; }
 as_root() {
     if [[ "${EUID}" -eq 0 ]]; then "$@"; else sudo "$@"; fi
 }
+as_user() {
+    # run command as postgres user (works when running as root or non-root)
+    if [[ "${EUID}" -eq 0 ]]; then
+        su - postgres -c "$*"
+    else
+        sudo -u postgres bash -c "$*"
+    fi
+}
 
 # ── command: fix-sshd ───────────────────────────────────────────────────────
 cmd_fix_sshd() {
@@ -122,24 +130,32 @@ ensure_cluster() {
     as_root pg_ctlcluster "${PG_VERSION}" main start 2>/dev/null \
         || as_root systemctl enable --now postgresql
 }
-role_exists()     { as_root -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${PG_USER}'" | grep -q 1; }
-database_exists() { as_root -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${PG_DB}'" | grep -q 1; }
+role_exists() {
+    local result
+    result=$(su - postgres -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='${PG_USER}'\"" 2>/dev/null)
+    [[ "${result}" == "1" ]]
+}
+database_exists() {
+    local result
+    result=$(su - postgres -c "psql -tAc \"SELECT 1 FROM pg_database WHERE datname='${PG_DB}'\"" 2>/dev/null)
+    [[ "${result}" == "1" ]]
+}
 ensure_role_db() {
     log "role/db: user=${PG_USER} db=${PG_DB}"
     if ! role_exists; then
-        as_root -u postgres psql -c "CREATE ROLE \\"${PG_USER}\\" WITH LOGIN PASSWORD '${PG_PASSWORD}';"
+        su - postgres -c "psql -c \"CREATE ROLE \\\"${PG_USER}\\\" WITH LOGIN PASSWORD '${PG_PASSWORD}';\""
     else
-        as_root -u postgres psql -c "ALTER ROLE \\"${PG_USER}\\" WITH LOGIN PASSWORD '${PG_PASSWORD}';"
+        su - postgres -c "psql -c \"ALTER ROLE \\\"${PG_USER}\\\" WITH LOGIN PASSWORD '${PG_PASSWORD}';\""
     fi
     if ! database_exists; then
-        as_root -u postgres createdb -O "${PG_USER}" "${PG_DB}"
+        su - postgres -c "createdb -O '${PG_USER}' '${PG_DB}'"
     fi
-    as_root -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE \\"${PG_DB}\\" TO \\"${PG_USER}\\";"
+    su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE '${PG_DB}' TO '${PG_USER}';\""
 }
 load_init() {
     [[ -f "${INIT_SQL}" ]] || { log "no init.sql — skipping"; return 0; }
     log "loading ${INIT_SQL}"
-    as_root -u postgres psql -d "${PG_DB}" -v ON_ERROR_STOP=1 -f "${INIT_SQL}"
+    su - postgres -c "psql -d '${PG_DB}' -v ON_ERROR_STOP=1 -f '${INIT_SQL}'"
 }
 main() {
     install_pg
