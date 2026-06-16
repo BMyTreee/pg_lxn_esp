@@ -308,13 +308,13 @@ cmd_prompt_all() {
     log "enter PostgreSQL credentials (or leave blank for defaults)"
 
     read -r -p "PostgreSQL user [lxn]: " pg_user_input
-    [[ -n "$pg_user_input" ]] && export LXN_PG_USER="$pg_user_input"
+    export LXN_PG_USER="${pg_user_input:-lxn}"
 
     read -r -s -p "PostgreSQL password [changeme]: " pg_pass_input
     echo
-    [[ -n "$pg_pass_input" ]] && export LXN_PG_PASSWORD="$pg_pass_input"
+    export LXN_PG_PASSWORD="${pg_pass_input:-changeme}"
 
-    log "PG user=${LXN_PG_USER:-lxn} password=***"
+    log "PG user=${LXN_PG_USER} password=***"
 }
 
 # ── main / dispatch ─────────────────────────────────────────────────────────
