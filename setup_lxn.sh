@@ -312,7 +312,6 @@ main() {
 }
 main "$@"
 REMOTE
-    unset PG_VERSION PG_DB PG_USER PG_PASSWORD
 
     cmd_open_pg
 
